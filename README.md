@@ -1,1 +1,144 @@
 # Model-Relationship-In-Djagno
+Model Relationship 
+1). One to one
+2). Many to one 
+3). Many to many
+
+If you are able to link one row of table to anyother row of table is called model
+relationship.
+
+(One To One): 
+
+In One to one relationship a user can create only one page.
+"OneToOneField" is used.
+
+Syntax:- OneToOneField(to,on_delete,parent_link=False,**options)
+Where,
+to=The class to which the model is related.
+on_delete= Means when the user will delete the page will also delete with him.
+
+(models.py)
+
+from django.db import models
+from django.contrib.auth.models import User
+
+class Page(models.Model):
+  #1.user can not create more than one page by this
+  #2.when user will delete page will also delete
+  #3.when page will delete user will not delete
+  #user=models.OneToOneField(User,on_delete=models.CASCADE, primary_key=True)
+  
+  #1.If user created any page then he can not be deleted and page will be protected.
+  #user=models.OneToOneField(User,on_delete=models.PROTECT, primary_key=True)
+  
+  #1.Only staff_status=true user can create page.
+  #user=models.OneToOneField(User,on_delete=models.CASCADE, primary_key=True,limit_choices_to={'is_staff':True})
+  
+  #1.When page will delete user will also delete
+  #2.you have to make signals.py , apps.py and __init__.py
+  #user=models.OneToOneField(User,on_delete=models.PROTECT, primary_key=True)
+  
+  page_name=models.CharField(max_length=70)
+  page_cat=models.CharField(max_length=70)
+  page_publish_date=models.DateField()
+
+(admin.py)
+from .models import Page
+@admin.register(Page)
+class PageAdmin(admin.ModelAdmin):
+   list_display=['page_name','page_cat','page_publish_data','user']
+
+1. (signals.py)
+# it will be created if you wona when page will delete will user
+ from .models import Page
+ from django.db.models.signals import post_delete
+ from django.dispatch import receiver
+ @receiver(post_delete, sender=Page)
+ def delete_related_user(sender,instance,**kwargs):
+   instance.user.delete()
+
+2. (apps.py)
+# one more update in apps.py file
+
+class MyappConfig(AppConfig):
+  name='myapp'
+  def ready(self):
+     import app_name.signals
+
+3. (__init__.py)
+ default_add_config='app_name.apps.MyappConfig'
+
+
+
+(((For Inheritance)))
+class Like(Page):
+  user1=user=models.OneToOneField(User,on_delete=models.PROTECT, primary_key=True, parent_link=True)
+  likes=models.IntegerField()
+
+((admin.py))
+@admin.register(Like)
+class PageAdmin(admin.ModelAdmin):
+   list_display=['page_name','page_cat','page_publish_data','user','likes']
+
+
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+{{{Many To One Relationship}}}
+In this relation a user can create multiple pages.
+In it "Foreginkey" is used
+syntax: ForeginKey(to, on_delete, **option)
+
+
+
+(models.py)
+
+from django.db import models
+from django.contrib.auth.models import User
+class Post(models.Model):
+  #when the user will delete the post will also delete
+  #user=medels.ForigenKey(User, on_delete=models.CASCADE)
+
+  #if all post deleted then the user can be deleted
+  #user=medels.ForigenKey(User, on_delete=models.PROTECT)
+
+  #if user will delete page will not be delete 
+  #user=medels.ForigenKey(User, on_delete=models.SET_NULL,null=True)
+
+  post_title=models.CharField(max_length=70)
+  post_cat=models.CharField(max_length=70)
+  post_publish_date=models.DateField()
+
+(admin.py)
+
+from .models import Post
+@admin.register(Post)
+class PageAdmin(admin.ModelAdmin):
+   list_display=['page_name','page_cat','page_publish_data','user']
+
+
+{{{Many To Many}}}
+In this relationship a multiple user can create the same page and same page
+can be created through the multiple users (A song can be sung through the multiple
+user and multiple user can sing a single song)
+There will be three tables here
+1) User Table
+2) Song Table
+2) Song_User(song done by which user)
+
+Syntax: ManyToMany(to,**options)
+
+Example:
+(models.py)
+     class Song(models.Model):
+        user=models.ManyToManyField(User)
+        song_name=models.CharField(max_length=70)
+        song_duration=models.IntegerField()
+        def written_by(self):
+           return ",".join([str(p) for p in self.user.all()])
+(models.py)
+
+      @admin.register(Song)
+      class SongAdmin(admin.ModelAdmin):
+          list_display=['song_name','song_duration','written_by'
+]
+
